@@ -203,10 +203,8 @@ BOOL Cheats::writeWeaponData(UINT offset, weaponObj* wObj, BOOL status)
         tempName = new char[25];
         UINT oneShotDamageValue = 0x300;
         
-        std::cout << "[*] address to be read: " << (BYTE*)baseAddr + weaponDataStructureOffset + offset << std::endl;
         //get weapon name.
         memcpy(tempName, (BYTE*)baseAddr + weaponDataStructureOffset + offset, sizeof(tempName));
-        std::cout << "[*] Got the weapon name" << tempName;
 
         //ensure the weapon name matches the one we think we're editing.
         if (!_strcmpi(tempName, wObj->weaponName.c_str()))
@@ -216,7 +214,6 @@ BOOL Cheats::writeWeaponData(UINT offset, weaponObj* wObj, BOOL status)
         }
         //write one shot damage capability for the weapon.
         memcpy((BYTE*)baseAddr + weaponDataStructureOffset + offset + weaponDamageOffset, &oneShotDamageValue, sizeof(BYTE) * 2);
-        std::cout << "[*] Past the Memory Write call";
 
         return true;
     }
