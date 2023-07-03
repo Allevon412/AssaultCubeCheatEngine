@@ -1,0 +1,24 @@
+﻿  ACTrainer.cpp
+  Cheats.cpp
+  support.cpp
+D:\Training\GuidedHacking\ACTrainer\ACTrainer\ACTrainer\support.cpp(39,31): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+          with
+          [
+              _Ty=float
+          ]
+D:\Training\GuidedHacking\ACTrainer\ACTrainer\ACTrainer\support.cpp(39,35): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+          with
+          [
+              _Ty=float
+          ]
+D:\Training\GuidedHacking\ACTrainer\ACTrainer\ACTrainer\support.cpp(39,39): warning C4305: 'initializing': truncation from 'double' to '_Ty'
+          with
+          [
+              _Ty=float
+          ]
+  Generating code
+  177 of 241 functions (73.4%) were compiled, the rest were copied from previous compilation.
+    149 functions were new in current compilation
+    11 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  ACTrainer.vcxproj -> D:\Training\GuidedHacking\ACTrainer\ACTrainer\Release\ACTrainer.dll
