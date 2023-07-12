@@ -9,13 +9,13 @@
 ### If you have any questions feel free to reach out.
 
 ## Current Hacks:
+0) Cleans up the application and exits. - Does not remove the library from memory.
 1) Unlimited Ammo
 2) Unlimited HP
 3) Zero Recoil
 4) Change Score to 1337
 5) Set teleport beacon - saves current location to a variable, then returns to that locationb when the button is pressed a second time.
 6) One Shot Kills - Sets the damage on all weapons base damage to be 300 - This is incredibly high compared to the pistols 15 base damage. - This will cause all of the players to be pushed back significantly from taking such high damage.
-0) Cleans up the application and exits. - Does not remove the library from memory.
 
 ### Example Usage:
 1) Launch AssaultCube.exe - https://github.com/assaultcube/AC/releases/tag/v1.2.0.2
