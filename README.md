@@ -19,29 +19,55 @@
 ### Example Usage:
 1) Launch AssaultCube.exe - https://github.com/assaultcube/AC/releases/tag/v1.2.0.2
 2) Use my Reflective Loader to manually load / map the malicious DLL into the process' memory space. - This needs to be ran from an administrator command prompt to ensure high enough privileges to inject into the target process.
+
 PS D:\Training\GuidedHacking\ReflectiveDLLLoader\ReflectiveLoader\Release> .\ReflectiveLoader.exe -d D:\Training\GuidedHacking\ACTrainer\ACTrainer\Release\ACTrainer.dll -p ac_client.exe
+
 [*] Attempting to find Process ID of the Process [ac_client.exe].
+
 [*] Process ID found: [26696]!
+
 [*] Opening a Handle to the Process!
+
 [*] Attempting to open file handle
+
 [*] Allocating memory for the dll.
+
 [*] Memory allocated at location: [0x00ACE438], attempting to read file contents into memory
+
 [*] Allocating memory in the size of: [0xa00c] in remote process.
+
 [*] Memory Allocation successful. Memory located at: [0x005E0000]
+
 [*] Writing the Headers of our DLL into target process
+
 [*] Attempting to write our sections into the remote process
+
 [*] Attempting to write section: [.text] at location: [0x005E1000]
+
 [*] Attempting to write section: [.rdata] at location: [0x005E5000]
+
 [*] Attempting to write section: [.data] at location: [0x005E7000]
+
 [*] Attempting to write section: [.rsrc] at location: [0x005E8000]
+
 [*] Attempting to write section: [.reloc] at location: [0x005E9000]
+
 [*] Sections written into memory.
+
 [*]Attempting to write our mapping data at end of image location: [0x005EA000]
+
 [*] Attemtping to allocate memory in the remote process for our Loader Stub.
+
 [*] Allocation successful. Loaderstub memory location: [0x005F0000]
+
 [*] Attempting to Write LoaderStub
+
 [*] Creating Thread in remote process that will start the loading routine
+
 [*] Checking for completion of the loading routine
+
 [*] Loading routine successfully completed. Cleaning up!
+
 PS D:\Training\GuidedHacking\ReflectiveDLLLoader\ReflectiveLoader\Release>
-3) profit.
+
+4) profit.
