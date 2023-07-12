@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "process.h"
+#include "assaultCubeClasses.h"
 
 
 
@@ -32,11 +33,6 @@ struct weaponObj
 	UINT value;
 };
 
-struct playerPosStruct
-{
-	std::vector<float> xyzPos;
-};
-
 class Cheats
 {
 private: 
@@ -58,10 +54,10 @@ public:
 
 
 	// Cheats definitions
-	BOOL infiniteAnything(changeValueStruct* valueStruct);
+	BOOL infiniteAnything(int32_t* targetData, UINT desiredData);
 	BOOL PatchAnything(patchCheatStruct cheatStruct);
-	BOOL TeleportPlayer(changeValueStruct dataStruct, playerPosStruct* playerPos);
-	BOOL ReadPlayerPos(changeValueStruct dataStruct, playerPosStruct* playerPos);
+	BOOL TeleportPlayer(entityInfo* eInfo, Vector3 beaconPos);
+	//BOOL ReadPlayerPos(changeValueStruct dataStruct, playerPosStruct* playerPos);
 	BOOL readWeaponData(UINT offset, weaponObj* wObj);
 	BOOL writeWeaponData(UINT offset, weaponObj* wObj, BOOL status);
 };

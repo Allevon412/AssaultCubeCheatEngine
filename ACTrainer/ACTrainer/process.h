@@ -6,6 +6,6 @@
 
 DWORD getProcId(const char* procName);
 
-uintptr_t GetModuleBaseAddr(DWORD procId, const char* modName);
+uintptr_t GetModuleBaseAddr(const char* modName);
 
 uintptr_t findDMAAddy(uintptr_t pt, std::vector<unsigned int> offsets);

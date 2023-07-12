@@ -1,9 +1,13 @@
 #pragma once
 
 #include "Cheats.h"
+#include "assaultCubeClasses.h"
 
-void cleanup(Cheats cheatObj, patchCheatStruct infiniteAmmoStruct, patchCheatStruct noRecoilStruct, changeValueStruct infiniteHP, changeValueStruct playerScore);
-void printHackConsole(BOOL num1Status, BOOL num2Status, BOOL num3Status, BOOL num4Status, playerPosStruct currPlayerPos, BOOL num6status);
-void initializeVars(patchCheatStruct* noRecoilStruct, patchCheatStruct* infiniteAmmoStruct, 
-	changeValueStruct* infiniteHP, changeValueStruct* playerScore, changeValueStruct* playerPosDataStruct,
-	playerPosStruct* playerPos, changeValueStruct* weaponDamage);
+struct consoleBools
+{
+    BOOL num1Status, num2Status, num3Status, num4Status, num5status, num6status;
+};
+
+void cleanup(Cheats cheatObj, patchCheatStruct infiniteAmmoStruct, patchCheatStruct noRecoilStruct, entityInfo* eInfo);
+void printHackConsole(consoleBools cBools, entityInfo einfo, Vector3 beaconPos);
+void initializeVars(patchCheatStruct* noRecoilStruct, patchCheatStruct* infiniteAmmoStruct, changeValueStruct* weaponDamage, entityInfo* eInfo, uintptr_t baseAddr);

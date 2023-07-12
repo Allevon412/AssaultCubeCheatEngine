@@ -24,9 +24,6 @@
     <ClCompile Include="ACTrainer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerObjClassStructs.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="process.cpp">
       <Filter>process</Filter>
     </ClCompile>
@@ -45,6 +42,9 @@
       <Filter>gameCheats</Filter>
     </ClInclude>
     <ClInclude Include="support.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="assaultCubeClasses.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -134,11 +134,11 @@
   <ItemGroup>
     <ClCompile Include="ACTrainer.cpp" />
     <ClCompile Include="Cheats.cpp" />
-    <ClCompile Include="PlayerObjClassStructs.cpp" />
     <ClCompile Include="process.cpp" />
     <ClCompile Include="support.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="assaultCubeClasses.h" />
     <ClInclude Include="Cheats.h" />
     <ClInclude Include="process.h" />
     <ClInclude Include="support.h" />

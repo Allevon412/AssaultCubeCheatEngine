@@ -4,13 +4,13 @@
 #include <Windows.h>
 #include <vector>
 #include <iomanip>
-
 #include <stdlib.h>
 
 
 #include "process.h"
 #include "Cheats.h"
 #include "support.h"
+#include "assaultCubeClasses.h"
 
 
 DWORD WINAPI go(HMODULE hMod)
@@ -20,31 +20,31 @@ DWORD WINAPI go(HMODULE hMod)
     patchCheatStruct noRecoilStruct;
     //setup a cheatStructure for infiniteAmmo (patch out the decrement ammo instruction)
     patchCheatStruct infiniteAmmoStruct;
-    //setup structure for infinite hp.
-    changeValueStruct infiniteHP;
-    //std::vector<unsigned int> ammoOffsets = { 0x374, 0x14, 0x0 };
-    changeValueStruct playerScore;
+    //setup data for infinite hp, high score.
+    UINT desiredScore = 1337;
+    UINT desiredHP = 999;
+
     //setup value struct for one shot kills on current weapon.
     changeValueStruct weaponDamage;
     weaponObj weaponArray[10];
 
     //setup structures for the player position to be read / edited.
-    changeValueStruct playerPosDataStruct;
-    playerPosStruct currPlayerPos;
+    Vector3 beaconPos = { 0 };
 
     //set up cheater object
     Cheats cheatObj;
 
     //initialize base addr ptr.
     cheatObj.getNecessaryVars();
-    //initialize our structures so we can easily obtain pointers to our data locations we want to change.
-    initializeVars(&noRecoilStruct, &infiniteAmmoStruct, &infiniteHP, &playerScore, &playerPosDataStruct, &currPlayerPos, &weaponDamage);
+    entityInfo eInfo = { 0 };
 
-    cheatObj.ReadPlayerPos(playerPosDataStruct, &currPlayerPos);
+    consoleBools consoleBools;
+    consoleBools.num1Status = false, consoleBools.num2Status = false, consoleBools.num3Status = false, consoleBools.num4Status = false, consoleBools.num5status = false, consoleBools.num6status = false;
+   
+    //initialize our structures so we can easily obtain pointers to our data locations we want to change.
+    initializeVars(&noRecoilStruct, &infiniteAmmoStruct, &weaponDamage, &eInfo, cheatObj.baseAddr);
     
-    //intiailize status symbols for our cheats
-    BOOL num1Status = false, num2Status = false, num3Status = false, num4Status = false, num6status = false;
-    printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
+    printHackConsole(consoleBools, eInfo, beaconPos);
     
     //define the DWORD var for determining whether the process has exited.
     DWORD dwExit = 0;
@@ -54,8 +54,8 @@ DWORD WINAPI go(HMODULE hMod)
         // if numpad key is detected. Perform actions based on input.
         if (GetAsyncKeyState(VK_NUMPAD1) & 1)
         {
-            num1Status = !num1Status;
-            printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
+            consoleBools.num1Status = !consoleBools.num1Status;
+            printHackConsole(consoleBools, eInfo, beaconPos);
             //perform patch operation to give yourself infinite ammo.
             if (!cheatObj.PatchAnything(infiniteAmmoStruct))
             {
@@ -71,14 +71,13 @@ DWORD WINAPI go(HMODULE hMod)
         if (GetAsyncKeyState(VK_NUMPAD2) & 1)
         {
             //infiniteHP inversion: infiniteHP = !infiniteHP
-            infiniteHP.changed = !infiniteHP.changed;
-            num2Status = !num2Status;
-            printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
+            consoleBools.num2Status = !consoleBools.num2Status;
+            printHackConsole(consoleBools, eInfo, beaconPos);
 
             //if we're turning our infiniteHP hack off. Let's set the value back to the previous value.
-            if (!infiniteHP.changed)
+            if (!consoleBools.num2Status)
             {
-                if (!(cheatObj.infiniteAnything(&infiniteHP)))
+                if (!(cheatObj.infiniteAnything(&eInfo.localPlayerObjPtr->PlayerHP, 100)))
                 {
                     std::cout << "[!] Error attempting to set HP back to it's normal state";
 
@@ -88,8 +87,8 @@ DWORD WINAPI go(HMODULE hMod)
         }
         if (GetAsyncKeyState(VK_NUMPAD3) & 1)
         {
-            num3Status = !num3Status;
-            printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
+            consoleBools.num3Status = !consoleBools.num3Status;
+            printHackConsole(consoleBools, eInfo, beaconPos);
             //perform infinite loop for giving yourself infinite hp.
             if (!cheatObj.PatchAnything(noRecoilStruct))
             {
@@ -104,36 +103,57 @@ DWORD WINAPI go(HMODULE hMod)
         }
         if (GetAsyncKeyState(VK_NUMPAD4) & 1)
         {
-            num4Status = !num4Status;
-            printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
-            playerScore.changed = !playerScore.changed;
+            consoleBools.num4Status = !consoleBools.num4Status;
+            printHackConsole(consoleBools, eInfo, beaconPos);
 
-            
-
-            if (!cheatObj.infiniteAnything(&playerScore))
+            if (consoleBools.num4Status)
             {
-                std::cout << "[!] Error switching score back Exiting!" << std::endl;
-                playerScore.changed = false;
-                continue;
+                if (!cheatObj.infiniteAnything(&eInfo.localPlayerObjPtr->playerScore, eInfo.localPlayerObjPtr->playerScore + desiredScore))
+                {
+                    std::cout << "[!] Error switching score back Exiting!" << std::endl;
+                    continue;
+                }
             }
+            else
+            {
+                UINT previousScore = eInfo.localPlayerObjPtr->playerScore - desiredScore;
+                if (!cheatObj.infiniteAnything(&eInfo.localPlayerObjPtr->playerScore, previousScore))
+                {
+                    std::cout << "[!] Error switching score back Exiting!" << std::endl;
+                    continue;
+                }
+            }
+          
            
         }
         if (GetAsyncKeyState(VK_NUMPAD5) & 1)
-        {
-            currPlayerPos.xyzPos[2] = 5.0; //change z position to 5
-            if (!cheatObj.TeleportPlayer(playerPosDataStruct, &currPlayerPos))
+        {   
+            if (!consoleBools.num5status)
             {
-                std::cout << "[!] Error teleporting player. Exiting!";
-                return -1;
+                beaconPos.x = eInfo.localPlayerObjPtr->PlayerPos.x;
+                beaconPos.y = eInfo.localPlayerObjPtr->PlayerPos.y;
+                beaconPos.z = eInfo.localPlayerObjPtr->PlayerPos.z;
+                
             }
-            printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
-
+            else
+            {
+                if (!cheatObj.TeleportPlayer(&eInfo, beaconPos))
+                {
+                    std::cout << "[!] Error teleporting player. Exiting!";
+                    return -1;
+                }
+                beaconPos = { 0 };
+                
+            }
+            consoleBools.num5status = !consoleBools.num5status;
+            printHackConsole(consoleBools, eInfo, beaconPos);
+            
         }
         if (GetAsyncKeyState(VK_NUMPAD6) & 1)
         {
-            num6status = !num6status;
+            consoleBools.num6status = !consoleBools.num6status;
 
-            if (num6status)
+            if (consoleBools.num6status)
             {
                 weaponObj wObj;
 
@@ -145,50 +165,48 @@ DWORD WINAPI go(HMODULE hMod)
                         std::cout << "[!] Error trying to read weapon data" << std::endl;
                         break;
                     }
-                    std::cout << "[*] Attempting to assign wObj to wArr" << std::endl;
                     weaponArray[i].value = wObj.value;
                     weaponArray[i].weaponName = wObj.weaponName;
-                    std::cout << "[*] After assignment" << std::endl;
-                    if (!cheatObj.writeWeaponData(offsetToNextWeapon, &wObj, num6status))
+                    
+                    if (!cheatObj.writeWeaponData(offsetToNextWeapon, &wObj, consoleBools.num6status))
                     {
                         std::cout << "[!] Error trying to write weapon data" << std::endl;
                         break;
                     }
                 }
-                printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
+                printHackConsole(consoleBools, eInfo, beaconPos);
             }
             else
             {
                 for (int i = 0; i < 10; i++)
                 {
                     UINT offsetToNextWeapon = i * 0x12A;
-                    if (!cheatObj.writeWeaponData(offsetToNextWeapon, &weaponArray[i], num6status))
+                    if (!cheatObj.writeWeaponData(offsetToNextWeapon, &weaponArray[i], consoleBools.num6status))
                     {
                         std::cout << "[!] Error trying to revert weapon damage" << std::endl;
                         break;
                     }
                 }
-                printHackConsole(num1Status, num2Status, num3Status, num4Status, currPlayerPos, num6status);
+                printHackConsole(consoleBools, eInfo, beaconPos);
             }
         }
         if (GetAsyncKeyState(VK_NUMPAD0) & 1)
         {
-            cleanup(cheatObj, infiniteAmmoStruct, noRecoilStruct, infiniteHP, playerScore);
+            cleanup(cheatObj, infiniteAmmoStruct, noRecoilStruct, &eInfo);
             FreeLibraryAndExitThread(hMod, 0);
         }
 
         //part of the loop that will replace our current hp with what is defined as desirable amount above.
-        if (infiniteHP.changed)
+        if (consoleBools.num2Status)
         {
             //perform infinite loop for giving yourself infinite hp.
-            if (!cheatObj.infiniteAnything(&infiniteHP))
+            if (!cheatObj.infiniteAnything(&eInfo.localPlayerObjPtr->PlayerHP, desiredHP))
             {
                 std::cout << "[!] Error giving ourselves infinite health! Exiting!" << std::endl;
                 return -1;
             }
         }
-        
-        cheatObj.ReadPlayerPos(playerPosDataStruct, &currPlayerPos);
+
         //Sleep for a short time before checking again.
         Sleep(10);
 
@@ -211,7 +229,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
     case DLL_PROCESS_ATTACH:
     {
-        CloseHandle(CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)go, hModule, 0, nullptr));
+        //go(hModule);
+        //return 0;
+        
+        HANDLE hThread = NULL;
+        hThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)go, hModule, 0, nullptr);
+        if (hThread)
+        {
+            CloseHandle(hThread);
+            return 0;
+        }
+        return -1;
+        
+        
+        
     }
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:

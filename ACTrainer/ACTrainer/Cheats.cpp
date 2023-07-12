@@ -1,69 +1,33 @@
 #include "Cheats.h"
 
 
-BOOL Cheats::infiniteAnything(changeValueStruct* valueStruct)
+BOOL Cheats::infiniteAnything(int32_t* targetData, UINT desiredData)
 {
-    if (valueStruct->changed)
-    {
-        //resolve base address of the pointer chain
-        uintptr_t dynamicPtrBaseAddr = baseAddr + valueStruct->dynamic_offset;
-
-        //resolve value pointer chain
-        uintptr_t valueOffset = findDMAAddy(dynamicPtrBaseAddr, valueStruct->offSets);
-
-        //read value of desired location.
-        // only do this the first time since previousValue will be be non-zero after this read.
-        if (valueStruct->checkPrevValue)
-        {
-            if (!ReadProcessMemory(GetCurrentProcess(), (BYTE*)valueOffset, &valueStruct->previousValue, sizeof(valueStruct->previousValue), 0))
-            {
-                return false;
-            }
-        }
-
         //write value to desired location.
-        if (!WriteProcessMemory(GetCurrentProcess(), (BYTE*)valueOffset, &valueStruct->amountDesired, sizeof(valueStruct->amountDesired), 0))
+        if (!memcpy(targetData, &desiredData, sizeof(desiredData)))
         {
             return false;
         }
 
         return true;
-    }
-    else
-    {
-        uintptr_t dynamicPtrBaseAddr = baseAddr + valueStruct->dynamic_offset;
-        uintptr_t valueOffset = findDMAAddy(dynamicPtrBaseAddr, valueStruct->offSets);
-
-        //write value to desired location.
-        if (!WriteProcessMemory(GetCurrentProcess(), (BYTE*)valueOffset, &valueStruct->previousValue, sizeof(valueStruct->previousValue), 0))
-        {
-            return false;
-        }
-
-        return true;
-    }
     
 }
 
-BOOL Cheats::TeleportPlayer(changeValueStruct dataStruct, playerPosStruct* playerPos)
+BOOL Cheats::TeleportPlayer(entityInfo* eInfo, Vector3 beaconPos)
 {
-    uintptr_t dynamicBaseAddr = baseAddr + dataStruct.dynamic_offset;
-    uintptr_t valueOffset = findDMAAddy(dynamicBaseAddr, dataStruct.offSets);
-    if (!WriteProcessMemory(GetCurrentProcess(), (BYTE*)valueOffset, &playerPos->xyzPos[0], sizeof(&playerPos->xyzPos[0]), 0))
-    {
-        return false;
-    }
-    if (!WriteProcessMemory(GetCurrentProcess(), (BYTE*)valueOffset + sizeof(&playerPos->xyzPos[0]), &playerPos->xyzPos[1], sizeof(&playerPos->xyzPos[0]), 0))
-    {
-        return false;
-    }
-    if (!WriteProcessMemory(GetCurrentProcess(), (BYTE*)valueOffset + (sizeof(&playerPos->xyzPos[0]) * 2), &playerPos->xyzPos[2], sizeof(&playerPos->xyzPos[0]), 0))
-    {
-        return false;
-    }
+
+    memcpy(&eInfo->localPlayerObjPtr->PlayerPos.x, &beaconPos.x, sizeof(float));
+  
+    memcpy(&eInfo->localPlayerObjPtr->PlayerPos.y, &beaconPos.y, sizeof(float));
+
+    memcpy(&eInfo->localPlayerObjPtr->PlayerPos.z, &beaconPos.z, sizeof(float));
+
     return true;
 }
 
+/* 
+* DEPRECATED FUNCTION
+* 
 BOOL Cheats::ReadPlayerPos(changeValueStruct dataStruct, playerPosStruct* playerPos)
 {
     uintptr_t dynamicBaseAddr = baseAddr + dataStruct.dynamic_offset;
@@ -82,98 +46,57 @@ BOOL Cheats::ReadPlayerPos(changeValueStruct dataStruct, playerPosStruct* player
     }
     return true;
 }
+*/
 
 BOOL Cheats::PatchAnything(patchCheatStruct cheatStruct)
 {
     //perform the patching operation if instructions are currently unpatched.
     if (!cheatStruct.patched)
     {
-        //create a space to read the intended instructions out of memory.
-        char* bytesRead = new char[cheatStruct.numBytesToPatch];
-        memset(bytesRead, 0, cheatStruct.numBytesToPatch);
-        if (!ReadProcessMemory(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, bytesRead, cheatStruct.numBytesToPatch, 0))
-        {
-            std::cout << "Error reading memory to patch the program" << std::endl;
-            return false;
-        }
-
         //create our nop sled to patch out the intended instructions.
-        char* nop = new char[cheatStruct.numBytesToPatch+1];
-        memset(nop, '\x90', cheatStruct.numBytesToPatch+1);
-        
-        //compare original bytes with bytes read to make sure they match and we know we have the correct location.
-        if (std::memcmp(cheatStruct.originalBytes, bytesRead, cheatStruct.numBytesToPatch) == 0)
+        char* nop = new char[cheatStruct.numBytesToPatch + 1];
+        memset(nop, '\x90', cheatStruct.numBytesToPatch + 1);
+
+        //perform patching operation.
+        DWORD oldprotect;
+        if (!VirtualProtect((BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, PAGE_EXECUTE_READWRITE, &oldprotect))
         {
-            //perform patching operation.
-            DWORD oldprotect;
-            if (!VirtualProtectEx(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, PAGE_EXECUTE_READWRITE, &oldprotect))
-            {
-                //TODO: delete bytes read
-                delete[] nop;
-                return false;
-            }
-            if (!WriteProcessMemory(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, nop, cheatStruct.numBytesToPatch, 0))
-            {
-                delete[] nop;
-                return false;
-            }
-            if (!VirtualProtectEx(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, oldprotect, &oldprotect))
-            {
-                delete[] nop;
-                return false;
-            }
-            delete[] nop;
-            return true;
-        }
-        else
-        {
-            std::cout << "Error performing patching operation. The original bytes do match the bytes read" << std::endl;
+            //TODO: delete bytes read
             delete[] nop;
             return false;
         }
+        if (!memcpy((BYTE*)baseAddr + cheatStruct.instructionOffset, nop, cheatStruct.numBytesToPatch))
+        {
+            delete[] nop;
+            return false;
+        }
+        if (!VirtualProtect((BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, oldprotect, &oldprotect))
+        {
+            delete[] nop;
+            return false;
+        }
+        delete[] nop;
+        return true;
     }
     else
     {
-        //perform unpatch operations using original bytes if instructions are currently patched.
-        char* bytesRead = new char[cheatStruct.numBytesToPatch+1];
-        memset(bytesRead, 0, cheatStruct.numBytesToPatch+1);
-        if (!ReadProcessMemory(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, bytesRead, cheatStruct.numBytesToPatch, 0))
+        //perform patching operation.
+        DWORD oldprotect;
+        if (!VirtualProtect((BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, PAGE_EXECUTE_READWRITE, &oldprotect))
         {
-            std::cout << "Error reading memory to patch the program" << std::endl;
-            return false;
-        }
-        //create our nop sled to patch out the intended instructions.
-        char* nop = new char[cheatStruct.numBytesToPatch+1];
-        memset(nop, '\x90', cheatStruct.numBytesToPatch+1);
 
-        //compare nop bytes with bytes read to make sure they match and we know we have the correct location.
-        if (std::memcmp(nop, bytesRead, cheatStruct.numBytesToPatch) == 0)
-        {
-            //perform patching operation.
-            DWORD oldprotect;
-            if (!VirtualProtectEx(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, PAGE_EXECUTE_READWRITE, &oldprotect))
-            {
-                delete[] nop;
-                return false;
-            }
-            if (!WriteProcessMemory(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.originalBytes, cheatStruct.numBytesToPatch, 0))
-            {
-                delete[] nop;
-                return false;
-            }
-            if (!VirtualProtectEx(GetCurrentProcess(), (BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, oldprotect, &oldprotect))
-            {
-                delete[] nop;
-                return false;
-            }
-            return true;
-        }
-        else
-        {
-            std::cout << "Error performing patching operation. The patched bytes do match the bytes read" << std::endl;
-            delete[] nop;
             return false;
         }
+        if (!memcpy((BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.originalBytes, cheatStruct.numBytesToPatch))
+        {
+
+            return false;
+        }
+        if (!VirtualProtect((BYTE*)baseAddr + cheatStruct.instructionOffset, cheatStruct.numBytesToPatch, oldprotect, &oldprotect))
+        {
+            return false;
+        }
+        return true;
     }
 }
 
@@ -246,7 +169,7 @@ BOOL Cheats::writeWeaponData(UINT offset, weaponObj* wObj, BOOL status)
 void Cheats::getNecessaryVars()
 {
     //get module base address
-    baseAddr = (uintptr_t)GetModuleHandle(NULL);
+    baseAddr = (uintptr_t)GetModuleBaseAddr("ac_client.exe");
 
     
     AllocConsole();
@@ -263,17 +186,3 @@ void Cheats::getNecessaryVars()
 
   
 }
-/* DEPRECATED CODE used for when the hacks were external to the process.
-   *
-BOOL Cheats::CloseHandles()
-{
-    if (CloseHandle(hProc))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-*/

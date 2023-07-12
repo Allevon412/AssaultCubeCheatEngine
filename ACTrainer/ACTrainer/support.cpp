@@ -1,8 +1,6 @@
 #include "support.h"
 
-void initializeVars(patchCheatStruct* noRecoilStruct, patchCheatStruct* infiniteAmmoStruct,
-    changeValueStruct* infiniteHP, changeValueStruct* playerScore, changeValueStruct* playerPosDataStruct,
-    playerPosStruct* currPlayerPos, changeValueStruct* weaponDamage)
+void initializeVars(patchCheatStruct* noRecoilStruct, patchCheatStruct* infiniteAmmoStruct, changeValueStruct* weaponDamage, entityInfo* eInfo, uintptr_t baseAddr)
 {
     noRecoilStruct->numBytesToPatch = 10;
     noRecoilStruct->originalBytes = new char[noRecoilStruct->numBytesToPatch];
@@ -18,34 +16,19 @@ void initializeVars(patchCheatStruct* noRecoilStruct, patchCheatStruct* infinite
     infiniteAmmoStruct->instructionOffset = 0x637e9;
     infiniteAmmoStruct->patched = false;
 
-    infiniteHP->changed = false;
-    infiniteHP->dynamic_offset = 0x10F4F4;
-    infiniteHP->amountDesired = 6969;
-    infiniteHP->offSets = { 0xf8 };
-    infiniteHP->previousValue = 100;
-    infiniteHP->checkPrevValue = false;
-
-    playerScore->changed = false;
-    playerScore->dynamic_offset = 0x10F4F4;
-    playerScore->amountDesired = 1337;
-    playerScore->offSets = { 0x1fc };
-    playerScore->previousValue = 0;
-    playerScore->checkPrevValue = true;
-
-    playerPosDataStruct->changed = false;
-    playerPosDataStruct->dynamic_offset = 0x10F4F4;
-    playerPosDataStruct->offSets = { 0x34 };
-
-    currPlayerPos->xyzPos = { 0.1,0.1,0.1 };
-
     weaponDamage->amountDesired = 0x300;
     weaponDamage->changed = false;
     weaponDamage->checkPrevValue = false;
     weaponDamage->dynamic_offset = 0xFC300; //first weapon data structure
     weaponDamage->offSets = { 0x10c }; // offset to weapon damage.
+
+    eInfo->localPlayerObjPtr = reinterpret_cast<PlayerObj*>(findDMAAddy(baseAddr + 0x10F4F4, { 0 }));
+    eInfo->entityListPtr = reinterpret_cast<entityList*>(findDMAAddy(baseAddr + 0x10F4F8, { 0 }));
+
+    memcpy(&eInfo->numOfEntities, (BYTE*)(baseAddr + 0x10F4FC), sizeof(int32_t));
 }
 
-void cleanup(Cheats cheatObj, patchCheatStruct infiniteAmmoStruct, patchCheatStruct noRecoilStruct, changeValueStruct infiniteHP, changeValueStruct playerScore)
+void cleanup(Cheats cheatObj, patchCheatStruct infiniteAmmoStruct, patchCheatStruct noRecoilStruct, entityInfo* eInfo)
 {
     std::cout << "[!!] Hacking program is closing attempting to clean up memory space...." << std::endl;
     //we are exiting unpatch any patched memory spaces
@@ -62,13 +45,14 @@ void cleanup(Cheats cheatObj, patchCheatStruct infiniteAmmoStruct, patchCheatStr
 
     //when exiting the cheat engine we set the hp back to 100 regardless of what the changed value is.
     std::cout << "[!!] Setting hp back to 100.." << std::endl;
-    infiniteHP.amountDesired = infiniteHP.previousValue;
-    cheatObj.infiniteAnything(&infiniteHP);
+    eInfo->localPlayerObjPtr->PlayerHP = 100;
 
     //set player score back to previous value
     std::cout << "[!!] Setting player score back to previous value" << std::endl;
-    playerScore.amountDesired = playerScore.previousValue;
-    cheatObj.infiniteAnything(&playerScore);
+    if (eInfo->localPlayerObjPtr->playerScore >= 1337)
+    {
+        eInfo->localPlayerObjPtr->playerScore -= 1337;
+    }
 
     std::cout << "[*] Exiting Cleanly.." << std::endl;
 
@@ -81,7 +65,7 @@ void cleanup(Cheats cheatObj, patchCheatStruct infiniteAmmoStruct, patchCheatStr
     return;
 }
 
-void printHackConsole(BOOL num1Status, BOOL num2Status, BOOL num3Status, BOOL num4Status, playerPosStruct currPlayerPos, BOOL num6status)
+void printHackConsole(consoleBools cBools, entityInfo einfo, Vector3 beaconPos)
 {
     system("cls");
     for (int i = 0; i < 100; i++)
@@ -96,12 +80,16 @@ void printHackConsole(BOOL num1Status, BOOL num2Status, BOOL num3Status, BOOL nu
     printf("\n%-75s%s\n", "[Hacks]", "[Current Status]\n");
     printf("%-75s\n", "[NUMPAD0] Exit Hack Engine and Return Program to Normal State\n");
 
-    printf("%-75s%s\n", "[NUMPAD1] Infinite Ammo", (num1Status ? "--> ON <--\n" : "--> OFF <--\n"));
-    printf("%-75s%s\n", "[NUMPAD2] Infinite HP", (num2Status ? "--> ON <--\n" : "--> OFF <--\n"));
-    printf("%-75s%s\n", "[NUMPAD3] Zero Recoil", (num3Status ? "--> ON <--\n" : "--> OFF <--\n"));
-    printf("%-75s%s\n", "[NUMPAD4] Change Player Score to 1337", (num4Status ? "--> ON <--\n" : "--> OFF <--\n"));
-    printf("%-75s%s%.3f%s%.3f%s%.3f%s\n", "[NUMPAD5] Change Player Pos *TELEPORT*", "[*] Curr Pos: [",
-        currPlayerPos.xyzPos[0], ", ", currPlayerPos.xyzPos[1], ", ", currPlayerPos.xyzPos[2], "]\n");
-    printf("%-75s%s\n", "[NUMPAD6] One Shot Kills for Everyone", (num6status ? "--> ON <--\n" : "--> OFF <--\n"));
+    printf("%-75s%s\n", "[NUMPAD1] Infinite Ammo", (cBools.num1Status ? "--> ON <--\n" : "--> OFF <--\n"));
+    printf("%-75s%s\n", "[NUMPAD2] Infinite HP", (cBools.num2Status ? "--> ON <--\n" : "--> OFF <--\n"));
+    printf("%-75s%s\n", "[NUMPAD3] Zero Recoil", (cBools.num3Status ? "--> ON <--\n" : "--> OFF <--\n"));
+    printf("%-75s%s\n", "[NUMPAD4] Change Player Score to 1337", (cBools.num4Status ? "--> ON <--\n" : "--> OFF <--\n"));
+    printf("%-75s%s%.3f, %.3f, %.3f]\n\n", 
+        (cBools.num5status ? "[NUMPAD5] *TELEPORT* Back to Beacon" : "[NUMPAD5] Set *TELEPORT* Beacon"),
+        (cBools.num5status ? "[*] Beacon Pos: [" : "[*] Curr Pos: ["),
+        (cBools.num5status ? beaconPos.x : einfo.localPlayerObjPtr->PlayerPos.x),
+        (cBools.num5status ? beaconPos.y : einfo.localPlayerObjPtr->PlayerPos.y),
+        (cBools.num5status ? beaconPos.z : einfo.localPlayerObjPtr->PlayerPos.z));
+    printf("%-75s%s\n", "[NUMPAD6] One Shot Kills for Everyone", (cBools.num6status ? "--> ON <--\n" : "--> OFF <--\n"));
 
 }
